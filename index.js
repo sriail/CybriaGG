@@ -13,7 +13,7 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 // Landing page route - check for specific query parameter
 app.get('/', (req, res, next) => {
   // If user hasn't started yet, show landing page
-  if (!req.query.start) {
+  if (!req.query.start && !req.query.proxy) {
     const indexPath = path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
@@ -86,6 +86,15 @@ app.get('/', (req, res, next) => {
                 .info-box h3 { color: #667eea; margin-bottom: 8px; font-size: 16px; }
                 .info-box ul { color: #555; font-size: 14px; margin-left: 20px; }
                 .info-box li { margin: 5px 0; }
+                .alert {
+                    background: #fff3cd;
+                    border: 1px solid #ffc107;
+                    padding: 12px;
+                    border-radius: 8px;
+                    margin-top: 15px;
+                    color: #856404;
+                    font-size: 14px;
+                }
             </style>
         </head>
         <body>
@@ -106,15 +115,27 @@ app.get('/', (req, res, next) => {
                         <li>Discreet access</li>
                     </ul>
                 </div>
+                
+                <div class="alert" id="alert" style="display:none;">
+                    ⚠️ Please allow popups for this site to use Cloak Mode!
+                </div>
             </div>
 
             <script>
                 function openCloaked() {
+                    // Try to open the window
                     const win = window.open('about:blank', '_blank');
-                    if (!win) {
-                        alert('Popup blocked! Please allow popups for this site.');
+                    
+                    if (!win || win.closed || typeof win.closed == 'undefined') {
+                        // Popup was blocked
+                        document.getElementById('alert').style.display = 'block';
+                        setTimeout(() => {
+                            document.getElementById('alert').style.display = 'none';
+                        }, 5000);
                         return;
                     }
+
+                    const currentOrigin = window.location.origin;
 
                     win.document.open();
                     win.document.write(\`
@@ -133,6 +154,7 @@ app.get('/', (req, res, next) => {
                                     width: 100%;
                                     height: 100%;
                                     border: none;
+                                    z-index: 1;
                                 }
                                 .cloak-toggle {
                                     position: fixed;
@@ -183,12 +205,12 @@ app.get('/', (req, res, next) => {
                             </style>
                         </head>
                         <body>
-                            <iframe id="content-frame" src="\${window.location.origin}/?start=direct"></iframe>
+                            <iframe id="content-frame" src="\${currentOrigin}/?proxy=1"></iframe>
                             
                             <div id="cover" class="hidden">
                                 <img src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" alt="Google">
                                 <h1>Google Search</h1>
-                                <p>Click the button to return</p>
+                                <p>Click the eye button to return</p>
                             </div>
 
                             <button class="cloak-toggle" onclick="toggleCloak()" title="Toggle Cloak Mode">
@@ -221,12 +243,19 @@ app.get('/', (req, res, next) => {
                                         toggleCloak();
                                     }
                                 });
-                            </script>
+                            <\/script>
                         </body>
                         </html>
                     \`);
                     win.document.close();
-                    window.close();
+                    
+                    // Try to close opener window
+                    try {
+                        window.close();
+                    } catch(e) {
+                        // If we can't close, at least navigate away
+                        window.location.href = 'https://www.google.com';
+                    }
                 }
             </script>
         </body>
@@ -234,7 +263,7 @@ app.get('/', (req, res, next) => {
       `);
     }
   } else {
-    // User clicked "Open Direct", proxy to mathsspot
+    // User clicked "Open Direct" or is in proxy mode
     next();
   }
 });

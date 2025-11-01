@@ -129,7 +129,7 @@ app.get('/', (req, res, next) => {
                     if (!win || win.closed || typeof win.closed == 'undefined') {
                         // Popup was blocked
                         document.getElementById('alert').style.display = 'block';
-                        setTimeout(() => {
+                        setTimeout(function() {
                             document.getElementById('alert').style.display = 'none';
                         }, 5000);
                         return;
@@ -138,7 +138,7 @@ app.get('/', (req, res, next) => {
                     const currentOrigin = window.location.origin;
 
                     win.document.open();
-                    win.document.write(\`
+                    win.document.write('
                         <!DOCTYPE html>
                         <html>
                         <head>
